@@ -1,0 +1,52 @@
+//SPDX-License-Identifier: Unlicense
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
+
+contract Timelocked{
+    address public token;
+    
+    
+
+    constructor(address _ERC20token){
+        token = _ERC20token;
+
+    }
+    struct depositer{
+        address depositerAddress;
+        uint256 Amount;
+        uint256 StartTime;
+        uint256 endTime;
+    }
+    mapping(address=> depositer) depositers;
+    address[] listOfDepositers;
+
+
+    function Deposite(address _depositer, uint256 amount,uint256 startTime, uint256 endTime)external{
+        depositers[_depositer].depositerAddress= _depositer;
+        depositers[_depositer].Amount = amount;
+        depositers[_depositer].StartTime= startTime;
+        depositers[_depositer].endTime=  endTime;
+
+        IERC20(token).transferFrom(_depositer, address(this), amount);
+
+    }
+
+    function Withdraw(address withdrawer) external {
+         require(withdrawer==depositers[withdrawer].depositerAddress, "No amount is locked for this address");
+         require(block.timestamp >=depositers[withdrawer].endTime, "Lock-in Period not over yet");
+       
+        IERC20(token).transfer(depositers[withdrawer].depositerAddress, depositers[withdrawer].Amount);
+        depositers[withdrawer].Amount=0;
+    }
+    function getDepositerDetails(address _Depositer)public view returns(address, uint256, uint256, uint256){
+
+        return (
+        depositers[_Depositer].depositerAddress,
+        depositers[_Depositer].Amount,
+        depositers[_Depositer].StartTime,
+        depositers[_Depositer].endTime
+        );
+    }
+}
